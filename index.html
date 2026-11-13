@@ -2,170 +2,167 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!--
-    SECTION 1: Page metadata
-    Sets the character encoding, responsive viewport,
-    and browser tab title.
-  -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
   <title>NOAA Boston Tide Gauge Map</title>
 
-  <!--
-    SECTION 2: Leaflet CSS
-    Loads Leaflet's stylesheet from a CDN.
-    This provides the map controls, marker styles,
-    and popup formatting.
-  -->
+  <!-- Load Leaflet CSS from a CDN (no security hashes) -->
   <link
     rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoTnvxN0K9pIs="
-    crossorigin=""
   >
 
-  <!--
-    SECTION 3: Page styling
-    Makes the map fill the browser window.
-    Removes default body margins.
-  -->
   <style>
+    /* Remove default browser margins and fill the screen */
     html, body {
       height: 100%;
+      width: 100%;
       margin: 0;
       padding: 0;
     }
 
+    /* Make the map fill the entire browser window */
     #map {
+      height: 100vh;
       width: 100%;
-      height: 100%;
+    }
+
+    /* Style the station popup */
+    .station-popup {
+      font-family: Arial, sans-serif;
+      line-height: 1.5;
+    }
+
+    .station-popup h3 {
+      margin: 0 0 8px;
+      color: #174b70;
     }
   </style>
 </head>
 
 <body>
-  <!--
-    SECTION 4: Map container
-    Leaflet renders the interactive map inside
-    this div element.
-  -->
+
+  <!-- The container in which Leaflet draws the map -->
   <div id="map"></div>
 
-  <!--
-    SECTION 5: Leaflet JavaScript
-    Loads the Leaflet mapping library from a CDN.
-    No installation or build tools are required.
-  -->
-  <script
-    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
-    crossorigin="">
-  </script>
+  <!-- Load the Leaflet JavaScript library -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
   <script>
-    /*
-      SECTION 6: NOAA station information
+    // -------------------------------------------
+    // 1. NOAA BOSTON TIDE GAUGE LOCATION
+    // -------------------------------------------
 
-      Station: Boston, Massachusetts
-      NOAA Station ID: 8443970
+    // NOAA station 8443970, Boston Harbor
+    const stationLat = 42.35392;
+    const stationLon = -71.05033;
 
-      Coordinates are from NOAA's published
-      station benchmark information.
+    // -------------------------------------------
+    // 2. INITIALIZE THE LEAFLET MAP
+    // -------------------------------------------
 
-      Leaflet expects coordinates in the order:
-      [latitude, longitude].
-    */
-    const station = {
-      id: "8443970",
-      name: "Boston, MA",
-      latitude: 42.35392,
-      longitude: -71.05033
-    };
-
-    /*
-      SECTION 7: Initialize the map
-
-      Creates a Leaflet map centered on the
-      tide gauge.
-
-      Zoom level 14 shows the surrounding
-      Boston waterfront. Larger numbers
-      zoom in closer.
-    */
-    const map = L.map("map").setView(
-      [station.latitude, station.longitude],
+    // Center the map at the tide gauge.
+    // Zoom 14 shows the surrounding waterfront.
+    const map = L.map('map').setView(
+      [stationLat, stationLon],
       14
     );
 
-    /*
-      SECTION 8: Add OpenStreetMap tiles
+    // -------------------------------------------
+    // 3. SATELLITE IMAGERY BASEMAP
+    // -------------------------------------------
 
-      Leaflet provides the map interface, but
-      the underlying geographic imagery comes
-      from OpenStreetMap's tile servers.
-
-      Attribution is required when using
-      OpenStreetMap data.
-    */
-    L.tileLayer(
-      "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    // Esri World Imagery provides satellite imagery.
+    const satellite = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
       {
+        attribution: 'Imagery &copy; Esri and contributors',
+        maxZoom: 19
+      }
+    );
+
+    // Add satellite imagery to the map.
+    satellite.addTo(map);
+
+    // -------------------------------------------
+    // 4. GEOGRAPHIC LABELS OVER SATELLITE
+    // -------------------------------------------
+
+    // This transparent layer adds place names,
+    // road names, and geographic labels.
+    const labels = L.tileLayer(
+      'https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',
+      {
+        attribution: 'Labels &copy; Esri',
         maxZoom: 19,
-        attribution:
-          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        pane: 'overlayPane'
+      }
+    );
+
+    // Draw the labels above the imagery.
+    labels.addTo(map);
+
+    // -------------------------------------------
+    // 5. ADD NOAA TIDE GAUGE MARKER
+    // -------------------------------------------
+
+    // Create a marker at the NOAA station location.
+    const marker = L.marker(
+      [stationLat, stationLon]
+    ).addTo(map);
+
+    // Add a popup with station information.
+    marker.bindPopup(`
+      <div class="station-popup">
+        <h3>NOAA Boston Tide Gauge</h3>
+        <strong>Station:</strong> 8443970<br>
+        <strong>Location:</strong> Boston Harbor, MA<br>
+        <strong>Latitude:</strong> ${stationLat}<br>
+        <strong>Longitude:</strong> ${stationLon}<br><br>
+
+        <a
+          href="https://tidesandcurrents.noaa.gov/stationhome.html?id=8443970"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          View NOAA Station Data
+        </a>
+      </div>
+    `);
+
+    // Open the popup automatically when map loads.
+    marker.openPopup();
+
+    // -------------------------------------------
+    // 6. MAP SCALE
+    // -------------------------------------------
+
+    // Display a distance scale in miles and km.
+    L.control.scale({
+      imperial: true,
+      metric: true
+    }).addTo(map);
+
+    // -------------------------------------------
+    // 7. OPTIONAL MAP LAYER CONTROL
+    // -------------------------------------------
+
+    // Allow users to toggle geographic labels.
+    L.control.layers(
+      {
+        "Satellite Imagery": satellite
+      },
+      {
+        "Geographic Labels": labels
+      },
+      {
+        collapsed: true
       }
     ).addTo(map);
 
-    /*
-      SECTION 9: Add the NOAA tide gauge marker
-
-      Places a standard Leaflet marker at the
-      published station coordinates.
-
-      The marker remains visible as users
-      pan and zoom around the map.
-    */
-    const marker = L.marker([
-      station.latitude,
-      station.longitude
-    ]).addTo(map);
-
-    /*
-      SECTION 10: Add a station information popup
-
-      Clicking the marker displays the station
-      name, NOAA ID, coordinates, and a link
-      to NOAA's official station webpage.
-
-      openPopup() displays the information
-      automatically when the map first loads.
-    */
-    marker.bindPopup(`
-      <strong>NOAA Boston Tide Gauge</strong><br>
-      Station ID: ${station.id}<br>
-      Latitude: ${station.latitude}<br>
-      Longitude: ${station.longitude}<br><br>
-      <a
-        href="https://tidesandcurrents.noaa.gov/stationhome.html?id=8443970"
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        View NOAA Station Data
-      </a>
-    `).openPopup();
-
-    /*
-      SECTION 11: Add a map scale
-
-      Displays a distance scale in both
-      metric and imperial units in the
-      bottom-left corner of the map.
-    */
-    L.control.scale({
-      metric: true,
-      imperial: true
-    }).addTo(map);
-
   </script>
+
 </body>
 </html>
+
